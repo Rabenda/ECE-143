@@ -16,12 +16,17 @@ from torch.utils.tensorboard import SummaryWriter
 import os
 import subprocess
 
-#---- Proxy ---
-result = subprocess.run('bash -c "source /etc/network_turbo && env | grep proxy"', shell=True, capture_output=True, text=True)
+# ---- Proxy ---
+result = subprocess.run(
+    'bash -c "source /etc/network_turbo && env | grep proxy"',
+    shell=True,
+    capture_output=True,
+    text=True,
+)
 output = result.stdout
 for line in output.splitlines():
-    if '=' in line:
-        var, value = line.split('=', 1)
+    if "=" in line:
+        var, value = line.split("=", 1)
         os.environ[var] = value
 
 # --- Config ---
@@ -42,9 +47,9 @@ TENSORBOARD_DIR = "./tf-logs"
 
 # --- Data ---
 print("Loading data...")
-df_train = pd.read_csv(TRAIN_PATH, engine='python')
-df_test = pd.read_csv(TEST_PATH, engine='python')
-df_sub = pd.read_csv(SUBMISSION_PATH, engine='python')
+df_train = pd.read_csv(TRAIN_PATH, engine="python")
+df_test = pd.read_csv(TEST_PATH, engine="python")
+df_sub = pd.read_csv(SUBMISSION_PATH, engine="python")
 
 
 df_train["label"] = (
@@ -126,21 +131,21 @@ class TensorBoardCallback(TrainerCallback):
     def __init__(self, writer):
         self.writer = writer
         self.step = 0
-        
+
     def on_log(self, args, state, control, logs=None, **kwargs):
         """Log metrics during training"""
         if logs is not None:
             for key, value in logs.items():
                 if isinstance(value, (int, float)):
                     self.writer.add_scalar(f"train/{key}", value, state.global_step)
-    
+
     def on_evaluate(self, args, state, control, metrics=None, **kwargs):
         """Log evaluation metrics"""
         if metrics is not None:
             for key, value in metrics.items():
                 if isinstance(value, (int, float)):
                     self.writer.add_scalar(f"eval/{key}", value, state.global_step)
-    
+
     def on_step_end(self, args, state, control, model=None, **kwargs):
         """Log gradients and weights periodically"""
         if state.global_step % 50 == 0 and model is not None:
@@ -152,15 +157,15 @@ class TensorBoardCallback(TrainerCallback):
                     total_norm += param_norm.item() ** 2
                     # Log individual layer gradient norms
                     self.writer.add_scalar(f"gradients/{name}", param_norm, state.global_step)
-            
-            total_norm = total_norm ** 0.5
+
+            total_norm = total_norm**0.5
             self.writer.add_scalar("gradients/total_norm", total_norm, state.global_step)
-            
+
             # Log weight distributions for key layers
             for name, param in model.named_parameters():
-                if 'weight' in name and param.requires_grad:
+                if "weight" in name and param.requires_grad:
                     self.writer.add_histogram(f"weights/{name}", param.data, state.global_step)
-    
+
     def on_train_end(self, args, state, control, **kwargs):
         """Close writer at end of training"""
         self.writer.close()
@@ -212,21 +217,16 @@ for label, freq in class_dist.items():
 def compute_metrics(p):
     preds = np.argmax(p.predictions, axis=1)
     labels = p.label_ids
-    
+
     # Calculate per-class accuracy
     per_class_acc = {}
     for label in range(3):
         mask = labels == label
         if mask.sum() > 0:
-            per_class_acc[f"class_{label}_accuracy"] = accuracy_score(
-                labels[mask], preds[mask]
-            )
-    
-    metrics = {
-        "accuracy": accuracy_score(labels, preds),
-        **per_class_acc
-    }
-    
+            per_class_acc[f"class_{label}_accuracy"] = accuracy_score(labels[mask], preds[mask])
+
+    metrics = {"accuracy": accuracy_score(labels, preds), **per_class_acc}
+
     return metrics
 
 
@@ -240,11 +240,12 @@ training_args = TrainingArguments(
     eval_strategy="steps",
     eval_steps=50,
     save_strategy="steps",
-    save_steps=50,
+    save_steps=200,
+    save_total_limit=2,
     load_best_model_at_end=True,
     metric_for_best_model="accuracy",
     fp16=True,
-    report_to="tensorboard",  # Enable built-in TensorBoard logging
+    report_to="tensorboard",
     logging_dir=TENSORBOARD_DIR,
 )
 
@@ -271,6 +272,7 @@ val_labels = val_predictions.label_ids
 
 # Log confusion matrix data
 from sklearn.metrics import confusion_matrix
+
 cm = confusion_matrix(val_labels, val_preds)
 print("Validation Confusion Matrix:")
 print(cm)
