@@ -12,6 +12,17 @@ from transformers import (
     Trainer,
 )
 
+#---- Proxy ---
+import subprocess
+import os
+
+result = subprocess.run('bash -c "source /etc/network_turbo && env | grep proxy"', shell=True, capture_output=True, text=True)
+output = result.stdout
+for line in output.splitlines():
+    if '=' in line:
+        var, value = line.split('=', 1)
+        os.environ[var] = value
+
 # --- Config ---
 MODEL_NAME = "microsoft/deberta-v3-base"
 
@@ -29,9 +40,9 @@ OUTPUT_DIR = "./llm_preference_model_prototype"
 
 # --- Data ---
 print("Loading data...")
-df_train = pd.read_csv(TRAIN_PATH)
-df_test = pd.read_csv(TEST_PATH)
-df_sub = pd.read_csv(SUBMISSION_PATH)
+df_train = pd.read_csv(TRAIN_PATH, engine='python')
+df_test = pd.read_csv(TEST_PATH, engine='python')
+df_sub = pd.read_csv(SUBMISSION_PATH, engine='python')
 
 
 df_train["label"] = (
