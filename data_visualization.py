@@ -66,6 +66,11 @@ test_data
 # df.to_csv("processed_train.csv", index=False)
 
 #==================================================Visualization==========================================
+"""
+In order to meet the requirement of the class, I have changed my visualization version to ipynb format.
+But notice that there are some code revision for the compatibility of the Kaggle platform.
+"""
+
 # Set consistent style for all plots
 sns.set_style("whitegrid")
 
@@ -127,11 +132,9 @@ def plot_individual_model_win_rate(df):
 def plot_response_length_by_winner(df):
     """
     Compares the distribution of response lengths between winning, losing, and tied responses.
-    FIX: Uses dropna to handle NoneType error before applying len().
     """
     df_plot = df.copy()
     
-    # FIX: Remove rows where response text is missing (handling NoneType error)
     df_plot = df_plot.dropna(subset=['response_a', 'response_b']).copy()
     
     # 1. Calculate response lengths
@@ -361,7 +364,6 @@ def plot_response_structure_by_outcome(df):
             return 1
         return count if count > 0 else 0
 
-
     # 1. Calculate new structural features (Word Count, Sentence Count, Avg Sentence Length)
     df_plot['word_count_a'] = df_plot['response_a'].apply(lambda x: len(x.split()))
     df_plot['sent_count_a'] = df_plot['response_a'].apply(count_sentences)
@@ -548,7 +550,6 @@ def plot_conversation_depth_analysis(df):
     df_plot = df.copy()
     
     # 1. Create a new feature: Conversation Turn Number
-    # For each original id (i.e., each conversation), assign an incremental number (1, 2, 3...)
     df_plot['turn_number'] = df_plot.groupby('id').cumcount() + 1
     
     # 2. Calculate the wins and total comparisons for each turn number
@@ -576,7 +577,6 @@ def plot_conversation_depth_analysis(df):
         return
 
     # 5. Plot the line chart
-    
     plt.figure(figsize=(10, 6))
     
     # Plot Tie Percentage (Main line)
